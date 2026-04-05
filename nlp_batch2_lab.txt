@@ -1,0 +1,400 @@
+Image classification Using svm
+
+import cv2
+import os
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
+
+# -------------------------
+# LOAD DATASET
+# -------------------------
+
+dataset_path = "dataset"
+data = []
+labels = []
+
+for label, folder in enumerate(["cat", "dog"]):
+    folder_path = os.path.join(dataset_path, folder)
+    for image_name in os.listdir(folder_path):
+        img_path = os.path.join(folder_path, image_name)
+        image = cv2.imread(img_path)
+        image = cv2.resize(image, (64, 64))
+
+        # For SVM (grayscale + flatten)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        data.append(gray.flatten())
+        labels.append(label)
+
+data = np.array(data)
+labels = np.array(labels)
+
+# -------------------------
+# SPLIT DATA
+# -------------------------
+
+X_train, X_test, y_train, y_test = train_test_split(
+    data, labels, test_size=0.5, random_state=42
+)
+
+# -------------------------
+# SVM CLASSIFIER
+# -------------------------
+
+print("Training SVM...")
+
+svm_model = SVC(kernel='linear')
+svm_model.fit(X_train, y_train)
+
+svm_predictions = svm_model.predict(X_test)
+print("SVM Accuracy:", accuracy_score(y_test, svm_predictions))
+
+Image clustering using k means
+
+import cv2
+import numpy as np
+
+# Read the image
+image = cv2.imread("image.jpg")
+
+# Convert image to RGB (optional for display clarity)
+image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+# Reshape image into 2D array of pixels
+pixel_values = image_rgb.reshape((-1, 3))
+pixel_values = np.float32(pixel_values)
+
+# Define criteria for K-means
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
+
+# Number of clusters
+k = 4
+
+# Apply K-means
+_, labels, centers = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+
+# Convert centers to 8-bit values
+centers = np.uint8(centers)
+
+# Map labels to cluster centers
+segmented_image = centers[labels.flatten()]
+
+# Reshape back to original image dimension
+segmented_image = segmented_image.reshape(image_rgb.shape)
+
+# Display images
+cv2.imshow("Original Image", image)
+cv2.imshow("Clustered Image", segmented_image)
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+Text classification using naive bayes classifier
+
+import pandas as pd
+import numpy as np
+import nltk
+from nltk.corpus import stopwords
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import accuracy_score, classification_report
+
+# 1. INITIALIZE BUILT-IN RESOURCES
+nltk.download('punkt')
+nltk.download('stopwords')
+stop_words_list = stopwords.words('english')
+
+# 2. LOAD DATASET FROM CSV
+# Replace 'dataset.csv' with your filename. 
+# Expected CSV format: two columns named 'text' and 'label'
+try:
+    df = pd.read_csv("dataset.csv")
+except FileNotFoundError:
+    # Fallback dummy data if file isn't found
+    data = {
+        'text': ["I love coding in Python", "Errors are so frustrating", "Machine learning is great", "I hate bugs"],
+        'label': ["Positive", "Negative", "Positive", "Negative"]
+    }
+    df = pd.DataFrame(data)
+
+# 3. MULTI-LEVEL TOKENIZATION (Visualizing built-in outputs)
+sample_text = df['text'].iloc[0]
+print(f"--- Tokenization Examples for: '{sample_text}' ---")
+print("Sentence Tokens:", nltk.sent_tokenize(sample_text))
+print("Word Tokens:    ", nltk.word_tokenize(sample_text))
+print("Char Tokens:    ", list(sample_text))
+# Subword approximation using built-in n-grams (3-character sequences)
+print("Subword Tokens: ", [sample_text[i:i+3] for i in range(len(sample_text)-2)])
+
+# 4. BUILT-IN FEATURE ENGINEERING & MODEL PIPELINE
+# This pipeline automates: Lowercasing, Stopword Removal, and TF-IDF calculation
+text_clf = Pipeline([
+    ('tfidf', TfidfVectorizer(stop_words=stop_words_list, lowercase=True)),
+    ('clf', MultinomialNB())
+])
+
+# 5. SPLIT DATA
+X_train, X_test, y_train, y_test = train_test_split(
+    df['text'], df['label'], test_size=0.2, random_state=42
+)
+
+# 6. TRAINING
+text_clf.fit(X_train, y_train)
+
+# 7. ACCURACY & EVALUATION
+predictions = text_clf.predict(X_test)
+print(f"\nModel Accuracy: {accuracy_score(y_test, predictions) * 100:.2f}%")
+print("\nDetailed Report:\n", classification_report(y_test, predictions))
+
+# 8. USER INPUT & PREDICTED OUTPUT
+print("\n" + "="*30)
+user_input = input("Enter text to classify: ")
+if user_input:
+    # The pipeline automatically applies the same TF-IDF transformations to the user input
+    predicted_label = text_clf.predict([user_input])[0]
+    
+    print(f"Input: {user_input}")
+    print(f"Predicted Class: {predicted_label}")
+
+N gram models for machine translation
+
+import pandas as pd
+import nltk
+from nltk.util import ngrams
+from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
+from sklearn.model_selection import train_test_split
+
+# 1. INITIALIZE RESOURCES
+nltk.download('punkt')
+
+# 2. LOAD DATASET
+# Replace 'translation_data.csv' with your file. 
+# Columns expected: 'english_text', 'french_text' (as an example)
+try:
+    df = pd.read_csv("translation_data.csv")
+except FileNotFoundError:
+    # Dummy Parallel Corpus (English to French-style dummy)
+    data = {
+        'source': ["I love coding", "The cat is black", "Weather is nice", "I eat apple"],
+        'target': ["J'aime coder", "Le chat est noir", "Le temps est beau", "Je mange une pomme"]
+    }
+    df = pd.DataFrame(data)
+
+# 3. BUILT-IN N-GRAM GENERATION
+def generate_ngrams(text, n=2):
+    tokens = nltk.word_tokenize(text.lower())
+    # Built-in nltk.util.ngrams function
+    return list(ngrams(tokens, n))
+
+sample_row = df['source'].iloc[0]
+print(f"Original: {sample_row}")
+print(f"Bigrams (n=2): {generate_ngrams(sample_row, 2)}")
+print(f"Trigrams (n=3): {generate_ngrams(sample_row, 3)}")
+
+# 4. EVALUATION METRIC (BLEU SCORE)
+# BLEU calculates the overlap of N-grams between candidate and reference
+def evaluate_translation(reference, candidate):
+    ref_tokens = [nltk.word_tokenize(reference.lower())]
+    cand_tokens = nltk.word_tokenize(candidate.lower())
+    
+    # Smoothing is used for short sentences to avoid 0 scores
+    smoothie = SmoothingFunction().method1
+    score = sentence_bleu(ref_tokens, cand_tokens, smoothing_function=smoothie)
+    return score
+
+# 5. SIMULATED TRANSLATION OUTPUT & EVALUATION
+# In a real scenario, your model would produce 'predicted_target'
+df['predicted_target'] = ["J'aime coder", "Le chat noir", "Temps est beau", "Je mange pomme"]
+
+# Apply built-in evaluation across the dataset
+df['bleu_score'] = df.apply(lambda row: evaluate_translation(row['target'], row['predicted_target']), axis=1)
+
+print(f"\nAverage BLEU Score: {df['bleu_score'].mean():.4f}")
+
+# 6. USER INPUT INTERACTION
+print("\n" + "="*30)
+user_ref = input("Enter the correct Human Reference: ")
+user_cand = input("Enter the Machine Translation to evaluate: ")
+
+if user_ref and user_cand:
+    score = evaluate_translation(user_ref, user_cand)
+    print(f"\nEvaluation Result:")
+    print(f"BLEU Score: {score:.4f} (Range: 0 to 1)")
+    if score > 0.7:
+        print("Quality: Excellent Translation")
+    elif score > 0.4:
+        print("Quality: Good/Understandable")
+    else:
+        print("Quality: Poor/Literal Translation")
+
+Low Pass Filters and High Pass
+
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Read the image in Grayscale
+img = cv2.imread("IMAGE.jpg", cv2.IMREAD_GRAYSCALE)
+
+lpf_kernel = np.ones((3, 3), np.float32) / 9
+low_pass = cv2.filter2D(img, -1, lpf_kernel)
+
+hpf_kernel = np.array([[-1, -1, -1],
+                       [-1,  8, -1],
+                       [-1, -1, -1]])
+high_pass = cv2.filter2D(img, -1, hpf_kernel)
+
+plt.figure(figsize=(10, 4))
+
+plt.subplot(1, 3, 1)
+plt.title("Original Image")
+plt.imshow(img, cmap="gray")
+plt.axis("off")
+
+plt.subplot(1, 3, 2)
+plt.title("Low Pass Filtered")
+plt.imshow(low_pass, cmap="gray")
+plt.axis("off")
+
+plt.subplot(1, 3, 3)
+plt.title("High Pass Filtered")
+plt.imshow(high_pass, cmap="gray")
+plt.axis("off")
+
+plt.show()
+
+# --- 1. ADVANCED LOW PASS FILTER (Gaussian) ---
+# Instead of a simple average, Gaussian gives more weight to the center pixel.
+# (5, 5) is the kernel size, and 0 lets OpenCV calculate the standard deviation.
+low_pass = cv2.GaussianBlur(img, (5, 5), 0)
+
+# --- 2. ADVANCED HIGH PASS FILTER (Sobel Combined) ---
+# Sobel calculates the gradient (change) in intensity.
+# We calculate horizontal (x) and vertical (y) then combine them.
+sobel_x = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+sobel_y = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+high_pass = cv2.magnitude(sobel_x, sobel_y)
+
+# --- 3. THE "GOLD STANDARD" HPF (Canny) ---
+# Canny uses a multi-stage algorithm to find thin, clean edges.
+canny_edges = cv2.Canny(img, 100, 200)
+
+# --- DISPLAY ---
+plt.figure(figsize=(15, 5))
+
+plt.subplot(1, 4, 1)
+plt.title("Original")
+plt.imshow(img, cmap="gray")
+plt.axis("off")
+
+plt.subplot(1, 4, 2)
+plt.title("Gaussian (Low Pass)")
+plt.imshow(low_pass, cmap="gray")
+plt.axis("off")
+
+plt.subplot(1, 4, 3)
+plt.title("Sobel (High Pass)")
+plt.imshow(high_pass, cmap="gray")
+plt.axis("off")
+
+plt.subplot(1, 4, 4)
+plt.title("Canny (Edges)")
+plt.imshow(canny_edges, cmap="gray")
+plt.axis("off")
+
+plt.tight_layout()
+plt.show()
+
+Histogram
+
+import cv2
+import numpy as np
+from matplotlib import pyplot as plt
+
+# Read the image in grayscale
+image = cv2.imread("image2.jpg", cv2.IMREAD_GRAYSCALE)
+
+# Histogram of original image
+hist_original = cv2.calcHist([image], [0], None, [256], [0, 256])
+
+# Histogram Equalization
+equalized_image = cv2.equalizeHist(image)
+
+# Histogram of equalized image
+hist_equalized = cv2.calcHist([equalized_image], [0], None, [256], [0, 256])
+
+# Display images
+cv2.imshow("Original Image", image)
+cv2.imshow("Histogram Equalized Image", equalized_image)
+
+# Plot histograms
+plt.figure(figsize=(10,4))
+
+plt.subplot(1,2,1)
+plt.title("Original Image Histogram")
+plt.plot(hist_original)
+plt.xlabel("Pixel Intensity")
+plt.ylabel("Frequency")
+
+plt.subplot(1,2,2)
+plt.title("Equalized Image Histogram")
+plt.plot(hist_equalized)
+plt.xlabel("Pixel Intensity")
+plt.ylabel("Frequency")
+
+plt.show()
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.model_selection import train_test_split
+
+# 1. LOAD DATASET (Using a CSV)
+# df = pd.read_csv("your_dataset.csv") 
+# For this example, we'll create a dummy list-based dataset:
+data = {
+    'text': [
+        "Data science is a fun and evolving field.",
+        "Machine learning is a subset of data science.",
+        "Data analysis is important for business growth.",
+        "Deep learning models require massive data.",
+        "Python is the leading language for science."
+    ]
+}
+df = pd.DataFrame(data)
+
+# 2. FEATURE ENGINEERING (The TfidfVectorizer)
+# - ngram_range: Captures phrases (e.g., "data science") as a single feature.
+# - max_features: Keeps only the top 500 most important words to prevent noise.
+vectorizer = TfidfVectorizer(
+    stop_words='english', 
+    ngram_range=(1, 2), 
+    max_features=500
+)
+
+# 3. TRANSFORM DATA INTO FEATURE VECTORS
+# This replaces your 'build_vocab', 'compute_tf', and 'compute_idf' functions.
+X = vectorizer.fit_transform(df['text'])
+
+# 4. PROCESS A USER QUERY
+query = "data science"
+# We must use 'transform' (not fit_transform) so the query uses the dataset's vocabulary
+query_vec = vectorizer.transform([query])
+
+# 5. CALCULATE SIMILARITY (Built-in Cosine Similarity)
+# This calculates the distance between the query and ALL documents at once.
+similarities = cosine_similarity(query_vec, X).flatten()
+
+# 6. OUTPUT RANKED RESULTS
+df['similarity_score'] = similarities
+ranked_df = df.sort_values(by='similarity_score', ascending=False)
+
+print(f"Query: '{query}'")
+print("\nTop Ranked Documents:")
+print(ranked_df[['text', 'similarity_score']])
