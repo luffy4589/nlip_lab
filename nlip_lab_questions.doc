@@ -1,0 +1,1523 @@
+text = "Hello, world! How are you?"
+tokens = text.split()
+# ['Hello,', 'world!', 'How', 'are', 'you?']
+
+  import nltk
+nltk.download('punkt_tab')
+from nltk.tokenize import word_tokenize
+
+tokens = word_tokenize("I can't stop. Dr. Smith's here!")
+# ["I", "ca", "n't", "stop", ".", "Dr.", "Smith", "'s", "here", "!"]
+
+  import spacy
+nlp = spacy.load("en_core_web_sm")
+doc = nlp("I can't stop. Dr. Smith's here!")
+tokens = [token.text for token in doc]
+
+  import re
+tokens = re.findall(r"\b\w+(?:'\w+)?\b", "I can't go home")
+# ["I", "can't", "go", "home"]
+
+  from tokenizers import Tokenizer
+from tokenizers.models import BPE
+
+# Using HuggingFace's pre-trained GPT-2 tokenizer
+from transformers import GPT2Tokenizer
+tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+tokens = tokenizer.tokenize("unhappiness")
+# ['un', 'happiness']   (varies by vocab)
+
+  from transformers import BertTokenizer
+tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+tokens = tokenizer.tokenize("unhappiness")
+# ['un', '##happiness']
+
+  import sentencepiece as spm
+
+sp = spm.SentencePieceProcessor()
+sp.load("spm.model")  # your trained model
+tokens = sp.encode("unhappiness", out_type=str)
+# ['▁un', 'happiness']
+
+  # Trained similarly to SentencePiece but with unigram model type
+# spm.SentencePieceTrainer.train('--model_type=unigram ...')
+from transformers import T5Tokenizer
+tokenizer = T5Tokenizer.from_pretrained("t5-small")
+tokens = tokenizer.tokenize("unhappiness")
+
+  text = "hello"
+tokens = list(text)
+# ['h', 'e', 'l', 'l', 'o']
+
+# With HuggingFace
+from tokenizers import CharBPETokenizer
+tokenizer = CharBPETokenizer()
+# tokenizer.train(["file.txt"])
+
+  from nltk import ngrams
+chars = list("hello")
+bigrams = list(ngrams(chars, 2))
+# [('h','e'), ('e','l'), ('l','l'), ('l','o')]
+
+  import nltk
+from nltk.tokenize import sent_tokenize
+
+text = "Hello Dr. Smith. How are you? I'm fine."
+sentences = sent_tokenize(text)
+# ['Hello Dr. Smith.', 'How are you?', "I'm fine."]
+
+  # With spaCy
+import spacy
+nlp = spacy.load("en_core_web_sm")
+doc = nlp("Hello Dr. Smith. How are you?")
+sentences = [sent.text for sent in doc.sents]
+
+  from nltk.tokenize import TweetTokenizer
+tt = TweetTokenizer()
+tokens = tt.tokenize("@Alice I LOVE #NLP 😊 http://example.com")
+# ['@Alice', 'I', 'LOVE', '#NLP', '😊', 'http://example.com']
+
+  from sacremoses import MosesTokenizer
+mt = MosesTokenizer(lang='en')
+tokens = mt.tokenize("It's a test.")
+# ["It", "'s", "a", "test", "."]
+
+  import stanza
+nlp = stanza.Pipeline('en', processors='tokenize,mwt,pos,lemma')
+doc = nlp("They were running")
+for sent in doc.sentences:
+    for word in sent.words:
+        print(word.text, word.lemma)
+
+  from nltk.tokenize import MWETokenizer
+mwe = MWETokenizer([("New", "York"), ("kick", "the", "bucket")])
+tokens = mwe.tokenize("I am going to New York to kick the bucket".split())
+# ['I', 'am', 'going', 'to', 'New_York', 'to', 'kick_the_bucket']
+
+  1. Bag-of-Words (BoW)
+The simplest representation — a document becomes a vector of word counts.
+Count Vectorizer — each word is a feature, value is its frequency.
+pythonfrom sklearn.feature_extraction.text import CountVectorizer
+
+corpus = ["I love NLP", "NLP is great", "I love machine learning"]
+vec = CountVectorizer()
+X = vec.fit_transform(corpus)
+print(vec.get_feature_names_out())
+# ['great', 'is', 'learning', 'love', 'machine', 'nlp']
+print(X.toarray())
+Binary Vectorizer — 1 if word present, 0 if not.
+pythonvec = CountVectorizer(binary=True)
+X = vec.fit_transform(corpus)
+Library: scikit-learn
+
+2. TF-IDF (Term Frequency–Inverse Document Frequency)
+Weights words by how unique they are across documents — common words like "the" get low weight, rare discriminative words get high weight.
+pythonfrom sklearn.feature_extraction.text import TfidfVectorizer
+
+tfidf = TfidfVectorizer(max_features=5000, ngram_range=(1, 2))
+X = tfidf.fit_transform(corpus)
+print(tfidf.get_feature_names_out())
+You can control min_df, max_df, sublinear_tf, and ngram_range to tune the feature space.
+Library: scikit-learn
+
+3. N-grams
+Captures word sequences (bigrams, trigrams) to preserve local context.
+pythonfrom sklearn.feature_extraction.text import CountVectorizer
+
+# Unigrams + bigrams
+vec = CountVectorizer(ngram_range=(1, 2))
+X = vec.fit_transform(corpus)
+
+# With NLTK
+from nltk import ngrams
+from nltk.tokenize import word_tokenize
+tokens = word_tokenize("I love NLP")
+bigrams = list(ngrams(tokens, 2))
+# [('I', 'love'), ('love', 'NLP')]
+Libraries: sklearn, nltk
+
+4. Hashing Trick (Feature Hashing)
+Maps words to a fixed-size vector using a hash function — memory efficient, no vocabulary needed.
+pythonfrom sklearn.feature_extraction.text import HashingVectorizer
+
+hv = HashingVectorizer(n_features=2**18, alternate_sign=False)
+X = hv.transform(corpus)
+Library: scikit-learn
+
+5. Word Embeddings (static)
+Dense vector representations trained on large corpora — semantically similar words have close vectors.
+Word2Vec — learns from local context windows (CBOW / Skip-gram).
+pythonfrom gensim.models import Word2Vec
+from nltk.tokenize import word_tokenize
+
+sentences = [word_tokenize(s.lower()) for s in corpus]
+model = Word2Vec(sentences, vector_size=100, window=5, min_count=1, epochs=10)
+
+vector = model.wv["nlp"]           # 100-dim vector
+similar = model.wv.most_similar("nlp", topn=5)
+GloVe — uses global co-occurrence statistics.
+pythonimport gensim.downloader as api
+glove = api.load("glove-wiki-gigaword-100")
+vector = glove["king"]
+print(glove.most_similar(positive=["king", "woman"], negative=["man"]))
+# [('queen', 0.77), ...]
+FastText — handles out-of-vocabulary words via character n-grams.
+pythonfrom gensim.models import FastText
+model = FastText(sentences, vector_size=100, window=5, min_count=1)
+# Can embed even unseen words like "NLPing"
+vector = model.wv["nlping"]
+Document-level embedding — average word vectors to get a document vector.
+pythonimport numpy as np
+
+def doc_vector(text, model):
+    tokens = word_tokenize(text.lower())
+    vecs = [model.wv[w] for w in tokens if w in model.wv]
+    return np.mean(vecs, axis=0) if vecs else np.zeros(100)
+Library: gensim
+
+6. Contextual Embeddings
+Modern approach — a word's vector changes based on its surrounding context (polysemy handled).
+BERT embeddings
+pythonfrom transformers import BertTokenizer, BertModel
+import torch
+
+tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+model = BertModel.from_pretrained("bert-base-uncased")
+
+inputs = tokenizer("The bank by the river", return_tensors="pt")
+with torch.no_grad():
+    outputs = model(**inputs)
+
+# Last hidden state: shape [1, seq_len, 768]
+token_embeddings = outputs.last_hidden_state
+# CLS token as sentence representation
+sentence_vec = outputs.last_hidden_state[:, 0, :]
+Sentence-BERT — optimized sentence-level embeddings, much faster for similarity tasks.
+pythonfrom sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+embeddings = model.encode(["I love NLP", "Natural language processing is great"])
+
+from sklearn.metrics.pairwise import cosine_similarity
+sim = cosine_similarity([embeddings[0]], [embeddings[1]])
+print(sim)  # [[0.85]]
+Libraries: transformers, sentence-transformers, torch
+
+7. POS Tags (Part-of-Speech)
+Assigns grammatical roles — noun, verb, adjective, etc. — as features.
+pythonimport spacy
+nlp = spacy.load("en_core_web_sm")
+
+doc = nlp("The quick brown fox jumps")
+pos_features = [(token.text, token.pos_, token.tag_) for token in doc]
+# [('The', 'DET', 'DT'), ('quick', 'ADJ', 'JJ'), ...]
+
+# Encode POS as binary features
+from sklearn.preprocessing import LabelEncoder
+pos_tags = [token.pos_ for token in doc]
+python# With NLTK
+import nltk
+tokens = nltk.word_tokenize("The quick brown fox")
+pos = nltk.pos_tag(tokens)
+# [('The', 'DT'), ('quick', 'JJ'), ('brown', 'JJ'), ('fox', 'NN')]
+Libraries: spacy, nltk
+
+8. NER (Named Entity Recognition) Features
+Tags entities like persons, organizations, locations — useful for information extraction features.
+pythonimport spacy
+nlp = spacy.load("en_core_web_sm")
+doc = nlp("Apple was founded by Steve Jobs in Cupertino.")
+
+for ent in doc.ents:
+    print(ent.text, ent.label_)
+# Apple ORG, Steve Jobs PERSON, Cupertino GPE
+
+# Build binary features: has_person, has_org, has_location
+features = {
+    "has_person": any(e.label_ == "PERSON" for e in doc.ents),
+    "has_org":    any(e.label_ == "ORG"    for e in doc.ents),
+    "entity_count": len(doc.ents)
+}
+Libraries: spacy, stanza, transformers
+
+9. Dependency Parsing Features
+Captures syntactic relationships between words.
+pythonimport spacy
+nlp = spacy.load("en_core_web_sm")
+doc = nlp("The cat sat on the mat")
+
+for token in doc:
+    print(token.text, token.dep_, token.head.text)
+# cat nsubj sat, sat ROOT sat, mat pobj on
+
+# Extract subject-verb pairs as features
+subj_verb = [(t.head.text, t.text) for t in doc if t.dep_ == "nsubj"]
+Library: spacy, stanza
+
+10. Lemmatization & Stemming
+Reduces words to their base form — "running" → "run", "better" → "good".
+pythonimport spacy
+nlp = spacy.load("en_core_web_sm")
+doc = nlp("The children were running faster")
+lemmas = [token.lemma_ for token in doc]
+# ['the', 'child', 'be', 'run', 'fast']
+
+# Stemming (cruder, faster)
+from nltk.stem import PorterStemmer, SnowballStemmer
+ps = PorterStemmer()
+print(ps.stem("running"))   # run
+print(ps.stem("happily"))   # happili
+
+ss = SnowballStemmer("english")
+print(ss.stem("generously"))  # generous
+Libraries: spacy, nltk
+
+11. Topic Model Features (LDA)
+Represents documents as distributions over latent topics.
+pythonfrom gensim import corpora
+from gensim.models import LdaModel
+from nltk.tokenize import word_tokenize
+
+texts = [word_tokenize(doc.lower()) for doc in corpus]
+dictionary = corpora.Dictionary(texts)
+bow_corpus = [dictionary.doc2bow(text) for text in texts]
+
+lda = LdaModel(bow_corpus, num_topics=5, id2word=dictionary, passes=10)
+
+# Get topic distribution for a document (use as features)
+topic_dist = lda[bow_corpus[0]]
+# [(0, 0.1), (2, 0.6), (4, 0.3)]
+Library: gensim
+
+12. Sentiment Features
+python# VADER (rule-based, great for social media)
+from nltk.sentiment import SentimentIntensityAnalyzer
+sia = SentimentIntensityAnalyzer()
+scores = sia.polarity_scores("I absolutely love this product!")
+# {'neg': 0.0, 'neu': 0.295, 'pos': 0.705, 'compound': 0.6696}
+
+# TextBlob
+from textblob import TextBlob
+blob = TextBlob("The movie was surprisingly good.")
+print(blob.sentiment)
+# Sentiment(polarity=0.5, subjectivity=0.5)
+
+# Transformer-based
+from transformers import pipeline
+sentiment = pipeline("sentiment-analysis")
+result = sentiment("I hate waiting in queues")
+# [{'label': 'NEGATIVE', 'score': 0.99}]
+Libraries: nltk (VADER), textblob, transformers
+
+13. Readability & Statistical Text Features
+pythonimport textstat
+
+text = "The cat sat on the mat. It was a simple day."
+print(textstat.flesch_reading_ease(text))   # 0–100, higher = easier
+print(textstat.flesch_kincaid_grade(text))  # US grade level
+print(textstat.syllable_count(text))
+
+# Custom handcrafted features
+features = {
+    "word_count":      len(text.split()),
+    "char_count":      len(text),
+    "avg_word_len":    sum(len(w) for w in text.split()) / len(text.split()),
+    "sentence_count":  text.count('.') + text.count('!') + text.count('?'),
+    "uppercase_ratio": sum(1 for c in text if c.isupper()) / len(text),
+    "punct_count":     sum(1 for c in text if c in '.,!?;:'),
+    "digit_ratio":     sum(1 for c in text if c.isdigit()) / len(text),
+}
+Library: textstat
+
+14. Semantic Similarity Features
+pythonimport spacy
+nlp = spacy.load("en_core_web_md")  # needs vectors
+
+doc1 = nlp("I enjoy coffee")
+doc2 = nlp("I like tea")
+print(doc1.similarity(doc2))  # 0.87
+
+# With FAISS for large-scale similarity
+from sentence_transformers import SentenceTransformer
+import faiss, numpy as np
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+docs = ["cat", "dog", "car", "truck"]
+embeddings = model.encode(docs).astype("float32")
+
+index = faiss.IndexFlatL2(embeddings.shape[1])
+index.add(embeddings)
+D, I = index.search(model.encode(["pet"]).astype("float32"), k=2)
+print([docs[i] for i in I[0]])  # ['cat', 'dog']
+Libraries: spacy, sentence-transformers, faiss-cpu
+
+  Building an N-gram LM from scratch
+pythonfrom collections import defaultdict, Counter
+import math
+
+class NgramLM:
+    def __init__(self, n):
+        self.n = n
+        self.ngram_counts  = defaultdict(Counter)
+        self.context_counts = defaultdict(int)
+
+    def train(self, sentences):
+        for sent in sentences:
+            tokens = ['<s>'] * (self.n - 1) + sent.split() + ['</s>']
+            for i in range(self.n - 1, len(tokens)):
+                context = tuple(tokens[i - self.n + 1 : i])
+                word    = tokens[i]
+                self.ngram_counts[context][word] += 1
+                self.context_counts[context]     += 1
+
+    def prob(self, word, context):
+        context = tuple(context[-(self.n-1):])
+        count   = self.ngram_counts[context][word]
+        total   = self.context_counts[context]
+        return count / total if total > 0 else 0.0
+
+    def score_sentence(self, sentence):
+        tokens = ['<s>'] * (self.n - 1) + sentence.split() + ['</s>']
+        log_prob = 0.0
+        for i in range(self.n - 1, len(tokens)):
+            context = tokens[i - self.n + 1 : i]
+            p = self.prob(tokens[i], context)
+            log_prob += math.log(p) if p > 0 else float('-inf')
+        return log_prob
+
+corpus = [
+    "the cat sat on the mat",
+    "the dog lay on the rug",
+    "the cat lay on the rug",
+]
+lm = NgramLM(n=3)
+lm.train(corpus)
+print(lm.score_sentence("the cat sat"))   # log probability
+
+Smoothing — the critical problem
+Raw N-gram counts fail badly on unseen N-grams (probability = 0 kills the whole sentence). Smoothing redistributes probability mass to unseen events.
+Laplace (add-k) smoothing
+pythonclass LaplaceLM(NgramLM):
+    def __init__(self, n, vocab_size, k=1):
+        super().__init__(n)
+        self.vocab_size = vocab_size
+        self.k = k
+
+    def prob(self, word, context):
+        context = tuple(context[-(self.n-1):])
+        count = self.ngram_counts[context][word]
+        total = self.context_counts[context]
+        return (count + self.k) / (total + self.k * self.vocab_size)
+Kneser-Ney smoothing (best in practice)
+Kneser-Ney is the gold standard for MT language models. It uses a discount d and a continuation probability — how many unique contexts a word appears in, not just how often.
+pythonclass KneserNeyLM:
+    def __init__(self, n, d=0.75):
+        self.n   = n
+        self.d   = d
+        self.ngram_counts   = defaultdict(Counter)
+        self.context_counts = defaultdict(int)
+        self.continuation   = Counter()   # how many contexts each word follows
+        self.num_bigrams    = 0
+
+    def train(self, sentences):
+        for sent in sentences:
+            tokens = ['<s>'] * (self.n - 1) + sent.split() + ['</s>']
+            for i in range(1, len(tokens)):
+                self.continuation[tokens[i]] += 1
+                self.num_bigrams += 1
+            for i in range(self.n - 1, len(tokens)):
+                ctx  = tuple(tokens[i - self.n + 1 : i])
+                word = tokens[i]
+                self.ngram_counts[ctx][word] += 1
+                self.context_counts[ctx]     += 1
+
+    def p_continuation(self, word):
+        return self.continuation[word] / self.num_bigrams if self.num_bigrams else 0
+
+    def prob(self, word, context):
+        ctx   = tuple(context[-(self.n-1):])
+        count = self.ngram_counts[ctx].get(word, 0)
+        total = self.context_counts[ctx]
+        if total == 0:
+            return self.p_continuation(word)
+        # Number of unique words seen after this context
+        lambda_ctx = (self.d / total) * len(self.ngram_counts[ctx])
+        discounted = max(count - self.d, 0) / total
+        return discounted + lambda_ctx * self.p_continuation(word)
+Interpolation (Jelinek-Mercer)
+Blend higher- and lower-order models. When you haven't seen "sat on the mat" (trigram), fall back to "on the mat" (bigram), then "the mat" (unigram):
+pythonclass InterpolatedLM:
+    def __init__(self, models, lambdas):
+        assert abs(sum(lambdas) - 1.0) < 1e-9
+        self.models  = models    # [trigram_lm, bigram_lm, unigram_lm]
+        self.lambdas = lambdas   # [0.6, 0.3, 0.1]
+
+    def prob(self, word, context):
+        return sum(lam * m.prob(word, context)
+                   for lam, m in zip(self.lambdas, self.models))
+
+Using N-gram LMs for decoding in MT
+The language model scores candidate translations during beam search. Each hypothesis is extended one word at a time, scored by P(translation_model) * P(language_model).
+pythonimport heapq
+
+def beam_search(translation_options, lm, beam_size=3, n=3):
+    """
+    translation_options: list of (source_phrase, [candidate_translations])
+    Returns the best translation hypothesis.
+    """
+    # Each state: (neg_log_prob, tokens_so_far)
+    beam = [(0.0, ['<s>'] * (n - 1))]
+
+    for src_phrase, candidates in translation_options:
+        new_beam = []
+        for neg_logp, tokens in beam:
+            for cand in candidates:
+                cand_tokens = cand.split()
+                score = neg_logp
+                ctx   = list(tokens)
+                for word in cand_tokens:
+                    p = lm.prob(word, ctx[-(n-1):])
+                    score -= math.log(p + 1e-10)
+                    ctx.append(word)
+                new_beam.append((score, ctx))
+        # Keep only top beam_size hypotheses
+        beam = heapq.nsmallest(beam_size, new_beam, key=lambda x: x[0])
+
+    best_score, best_tokens = beam[0]
+    return ' '.join(best_tokens[n-1:])   # strip <s> padding
+
+Evaluation: Perplexity and BLEU
+Perplexity measures how well the LM predicts a held-out test set. Lower = better.
+pythondef perplexity(lm, test_sentences):
+    total_log_prob = 0.0
+    total_words    = 0
+    for sent in test_sentences:
+        tokens = ['<s>'] * (lm.n - 1) + sent.split() + ['</s>']
+        for i in range(lm.n - 1, len(tokens)):
+            ctx = tokens[i - lm.n + 1 : i]
+            p   = lm.prob(tokens[i], ctx)
+            total_log_prob += math.log(p + 1e-10)
+            total_words    += 1
+    return math.exp(-total_log_prob / total_words)
+
+print(f"Perplexity: {perplexity(lm, test_sentences):.2f}")
+BLEU score measures translation quality against reference translations using N-gram precision:
+pythonfrom nltk.translate.bleu_score import sentence_bleu, corpus_bleu, SmoothingFunction
+
+reference  = [["the", "cat", "sat", "on", "the", "mat"]]
+hypothesis = ["the", "cat", "lay", "on", "the", "rug"]
+
+score = sentence_bleu(reference, hypothesis,
+                      smoothing_function=SmoothingFunction().method1)
+print(f"Sentence BLEU: {score:.4f}")
+
+# Corpus-level BLEU (standard for MT evaluation)
+references   = [[ref1.split(), ref2.split()], ...]   # multiple refs per sentence
+hypotheses   = [hyp.split() for hyp in translations]
+bleu = corpus_bleu(references, hypotheses)
+
+Using NLTK's built-in N-gram LM
+NLTK ships production-ready implementations with multiple smoothing methods:
+pythonfrom nltk.lm import MLE, Laplace, KneserNeyInterpolated
+from nltk.lm.preprocessing import padded_everygram_pipeline
+from nltk.util import bigrams, trigrams
+
+train_sents = [s.split() for s in corpus]
+n = 3
+
+# Builds all n-grams up to order n + padded vocabulary
+train_data, vocab = padded_everygram_pipeline(n, train_sents)
+
+# Pick your model
+lm = KneserNeyInterpolated(n)
+lm.fit(train_data, vocab)
+
+# Score a sentence
+test = "<s> the cat sat </s>".split()
+print(lm.logscore("sat", ["the", "cat"]))   # log₂ probability
+print(lm.perplexity(test))
+
+# Generate text
+print(lm.generate(10, text_seed=["the"]))
+
+Using KenLM (industry standard for MT)
+For large-scale MT (millions of sentences), KenLM is the standard — orders of magnitude faster and more memory efficient than NLTK.
+pythonimport kenlm    # pip install https://github.com/kpu/kenlm/...
+
+# Train from command line:
+# lmplz -o 5 < corpus.txt > model.arpa
+# build_binary model.arpa model.binary
+
+model = kenlm.Model("model.binary")
+
+sentence = "the cat sat on the mat"
+print(model.score(sentence))           # total log₁₀ prob
+print(model.perplexity(sentence))
+
+# Word-by-word scores with state (used inside beam search)
+state = kenlm.State()
+out_state = kenlm.State()
+model.BeginSentenceWrite(state)
+for word in sentence.split():
+    log_prob = model.BaseScore(state, word, out_state)
+    print(f"  P({word}) = {10**log_prob:.6f}")
+    state, out_state = out_state, kenlm.State()
+
+Full Moses-style SMT pipeline
+python# pip install nltk sacremoses kenlm
+
+# Step 1 — tokenize & lowercase
+from sacremoses import MosesTokenizer, MosesDetokenizer
+mt = MosesTokenizer(lang='en')
+tokenized = [mt.tokenize(s, return_str=True).lower() for s in raw_sentences]
+
+# Step 2 — train language model (KenLM CLI or NLTK)
+from nltk.lm import KneserNeyInterpolated
+from nltk.lm.preprocessing import padded_everygram_pipeline
+
+train_data, vocab = padded_everygram_pipeline(5, [s.split() for s in tokenized])
+lm = KneserNeyInterpolated(5)
+lm.fit(train_data, vocab)
+
+# Step 3 — score MT candidates
+candidates = ["the cat sat on the mat", "a cat sat the on mat", "cat the mat on sat"]
+scored = [(lm.perplexity(c.split()), c) for c in candidates]
+best = min(scored, key=lambda x: x[0])
+print(f"Best: {best[1]}  (ppl={best[0]:.2f})")
+
+# Step 4 — detokenize output
+md = MosesDetokenizer(lang='en')
+print(md.detokenize(best[1].split()))
+
+
+  1. Using scipy — the standard approach
+pythonfrom scipy import signal
+import numpy as np
+
+fs = 44100       # sample rate (Hz)
+fc = 1000        # cutoff frequency (Hz)
+order = 4        # filter order — higher = steeper rolloff
+
+# Normalize cutoff to Nyquist (0 to 1)
+nyq = fs / 2
+wn  = fc / nyq
+
+# --- Low-pass filter ---
+b_lp, a_lp = signal.butter(order, wn, btype='low')
+
+# --- High-pass filter ---
+b_hp, a_hp = signal.butter(order, wn, btype='high')
+
+# Apply to a signal
+t = np.linspace(0, 1, fs)
+x = np.sin(2*np.pi*200*t) + np.sin(2*np.pi*5000*t)   # 200Hz + 5kHz mix
+
+y_lp = signal.lfilter(b_lp, a_lp, x)   # keeps low tones
+y_hp = signal.lfilter(b_hp, a_hp, x)   # keeps high tones
+2. Zero-phase filtering (no phase distortion)
+lfilter shifts the signal in time. Use filtfilt when phase matters:
+pythony_lp_zp = signal.filtfilt(b_lp, a_lp, x)   # applies filter forward + backward
+y_hp_zp = signal.filtfilt(b_hp, a_hp, x)   # result: zero phase lag
+3. Choosing the right filter design
+python# Butterworth — maximally flat passband (most common)
+b, a = signal.butter(4, wn, btype='low')
+
+# Chebyshev Type I — steeper rolloff, ripple in passband
+b, a = signal.cheby1(4, rp=1, Wn=wn, btype='low')   # rp = max ripple dB
+
+# Chebyshev Type II — steeper rolloff, ripple in stopband
+b, a = signal.cheby2(4, rs=40, Wn=wn, btype='low')  # rs = stopband atten. dB
+
+# Elliptic — steepest rolloff, ripple in both bands
+b, a = signal.ellip(4, rp=1, rs=40, Wn=wn, btype='low')
+
+# Bessel — linear phase (preserves waveform shape), gentler rolloff
+b, a = signal.bessel(4, wn, btype='low')
+4. Bandpass and bandstop (combining both)
+python# Bandpass: pass only 500Hz–2000Hz
+f_low, f_high = 500, 2000
+wn_band = [f_low/nyq, f_high/nyq]
+b_bp, a_bp = signal.butter(4, wn_band, btype='bandpass')
+y_bp = signal.filtfilt(b_bp, a_bp, x)
+
+# Bandstop (notch): block 50Hz hum (power line noise)
+b_bs, a_bs = signal.butter(4, [49/nyq, 51/nyq], btype='bandstop')
+y_clean = signal.filtfilt(b_bs, a_bs, x)
+5. Simple 1st-order filter from scratch (exponential moving average)
+This is the discrete-time implementation of a first-order RC filter — dead simple, used everywhere in audio and control systems:
+pythonimport numpy as np
+
+def lowpass_ema(x, fc, fs):
+    """First-order low-pass via exponential moving average."""
+    dt   = 1.0 / fs
+    tau  = 1.0 / (2 * np.pi * fc)
+    alpha = dt / (tau + dt)          # α = dt / (RC + dt)
+    y = np.zeros_like(x)
+    y[0] = x[0]
+    for i in range(1, len(x)):
+        y[i] = alpha * x[i] + (1 - alpha) * y[i-1]
+    return y
+
+def highpass_ema(x, fc, fs):
+    """First-order high-pass via complementary of low-pass."""
+    return x - lowpass_ema(x, fc, fs)
+
+fs = 44100
+t  = np.linspace(0, 0.05, int(0.05 * fs))
+x  = np.sin(2*np.pi*200*t) + np.sin(2*np.pi*5000*t)
+
+y_lp = lowpass_ema(x, fc=1000, fs=fs)
+y_hp = highpass_ema(x, fc=1000, fs=fs)
+6. Plotting the frequency response
+pythonimport matplotlib.pyplot as plt
+from scipy import signal
+
+fs = 44100
+b, a = signal.butter(4, 1000/(fs/2), btype='low')
+
+w, h = signal.freqz(b, a, worN=8192, fs=fs)
+
+fig, axes = plt.subplots(2, 1, figsize=(10, 6))
+
+# Magnitude response
+axes[0].semilogx(w, 20*np.log10(np.abs(h)), color='teal')
+axes[0].set_ylabel('Magnitude (dB)')
+axes[0].set_xlabel('Frequency (Hz)')
+axes[0].axvline(1000, color='gray', linestyle='--', alpha=0.5, label='fc = 1000 Hz')
+axes[0].axhline(-3, color='red', linestyle=':', alpha=0.5, label='−3 dB')
+axes[0].set_ylim([-60, 5])
+axes[0].legend()
+axes[0].grid(True, which='both', alpha=0.3)
+
+# Phase response
+axes[1].semilogx(w, np.angle(h, deg=True), color='coral')
+axes[1].set_ylabel('Phase (degrees)')
+axes[1].set_xlabel('Frequency (Hz)')
+axes[1].grid(True, which='both', alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+7. Real-time / streaming filter (IIR direct form)
+For audio plugins, control loops, or any live signal:
+pythonclass BiquadFilter:
+    """Direct Form II transposed biquad — numerically stable for real-time use."""
+    def __init__(self, b, a):
+        self.b = b / a[0]
+        self.a = a / a[0]
+        self.z = [0.0, 0.0]   # state registers
+
+    def process_sample(self, x):
+        y       = self.b[0]*x + self.z[0]
+        self.z[0] = self.b[1]*x - self.a[1]*y + self.z[1]
+        self.z[1] = self.b[2]*x - self.a[2]*y
+        return y
+
+    def process_block(self, block):
+        return np.array([self.process_sample(s) for s in block])
+
+from scipy import signal as sp
+b, a = sp.butter(2, 1000/22050, btype='low')   # 2nd-order = one biquad
+filt = BiquadFilter(b, a)
+output = filt.process_block(x)
+
+  1. Setup and data loading
+pythonimport numpy as np
+import matplotlib.pyplot as plt
+from sklearn import svm, datasets
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.decomposition import PCA
+from sklearn.pipeline import Pipeline
+
+# Quick demo using sklearn's built-in digits dataset (8x8 images)
+digits = datasets.load_digits()
+X, y = digits.data, digits.target          # X: (1797, 64), already flattened
+print(f"Images: {digits.images.shape}")    # (1797, 8, 8)
+print(f"Features: {X.shape}")              # (1797, 64)
+print(f"Classes: {np.unique(y)}")          # [0 1 2 3 4 5 6 7 8 9]
+
+2. Loading real images from disk
+For custom datasets (cats vs dogs, CIFAR-style, etc.):
+pythonimport cv2
+import os
+from pathlib import Path
+
+def load_images_from_folder(root_dir, img_size=(64, 64), grayscale=False):
+    """
+    Expects folder structure:
+      root_dir/
+        class_a/  img1.jpg  img2.jpg ...
+        class_b/  img1.jpg  img2.jpg ...
+    """
+    X, y, label_names = [], [], []
+    class_dirs = sorted([d for d in Path(root_dir).iterdir() if d.is_dir()])
+
+    for label_idx, class_dir in enumerate(class_dirs):
+        label_names.append(class_dir.name)
+        for img_path in class_dir.glob("*.jpg"):
+            img = cv2.imread(str(img_path))
+            if img is None:
+                continue
+            img = cv2.resize(img, img_size)
+            if grayscale:
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            else:
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            X.append(img.flatten())
+            y.append(label_idx)
+
+    return np.array(X, dtype=np.float32), np.array(y), label_names
+
+X_raw, y_raw, classes = load_images_from_folder("data/", img_size=(64, 64))
+print(f"Dataset: {X_raw.shape}, Classes: {classes}")
+
+3. Preprocessing
+Scaling is critical for SVMs — features on different scales cause the SVM to weight some dimensions unfairly.
+pythonX_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+# Normalize pixel values to [0, 1]
+X_train = X_train / 255.0
+X_test  = X_test  / 255.0
+
+# StandardScaler: zero mean, unit variance — essential for RBF kernel
+scaler  = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test  = scaler.transform(X_test)          # use TRAIN statistics on test
+
+4. Feature extraction
+Option A — Raw pixel features (baseline)
+python# Already done above — just flatten the image
+# Works for small/simple images; struggles at scale
+Option B — HOG (Histogram of Oriented Gradients)
+HOG captures edge and gradient structure — much better than raw pixels for object recognition.
+pythonfrom skimage.feature import hog
+from skimage import exposure
+
+def extract_hog_features(images_flat, img_shape=(64, 64, 3)):
+    """Extract HOG features from a batch of flattened images."""
+    features = []
+    for img_flat in images_flat:
+        img = img_flat.reshape(img_shape)
+        fd = hog(img,
+                 orientations=9,
+                 pixels_per_cell=(8, 8),
+                 cells_per_block=(2, 2),
+                 channel_axis=-1)      # -1 for colour, None for grayscale
+        features.append(fd)
+    return np.array(features)
+
+X_hog_train = extract_hog_features(X_train_raw, img_shape=(64, 64, 3))
+X_hog_test  = extract_hog_features(X_test_raw,  img_shape=(64, 64, 3))
+print(f"HOG feature vector length: {X_hog_train.shape[1]}")
+
+# Still scale after HOG
+scaler = StandardScaler()
+X_hog_train = scaler.fit_transform(X_hog_train)
+X_hog_test  = scaler.transform(X_hog_test)
+Option C — PCA dimensionality reduction
+For high-resolution images, raw pixel feature vectors can be 50,000+ dimensions. PCA compresses this drastically.
+pythonpca = PCA(n_components=150, whiten=True, random_state=42)
+X_pca_train = pca.fit_transform(X_train)
+X_pca_test  = pca.transform(X_test)
+
+print(f"Variance explained: {pca.explained_variance_ratio_.sum():.2%}")
+print(f"Reduced: {X_train.shape[1]} → {X_pca_train.shape[1]} dims")
+Option D — CNN embeddings (transfer learning, most powerful)
+pythonimport torch
+import torchvision.models as models
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader, TensorDataset
+
+def extract_cnn_features(images_flat, img_shape=(3, 64, 64), batch_size=64):
+    model = models.resnet18(weights='IMAGENET1K_V1')
+    model.fc = torch.nn.Identity()   # remove classification head
+    model.eval()
+
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std =[0.229, 0.224, 0.225])
+    ])
+
+    all_feats = []
+    with torch.no_grad():
+        for i in range(0, len(images_flat), batch_size):
+            batch = images_flat[i:i+batch_size]
+            tensors = torch.tensor(batch).reshape(-1, *img_shape).float()
+            tensors = torch.stack([transform(t) for t in tensors])
+            feats = model(tensors)
+            all_feats.append(feats.numpy())
+
+    return np.vstack(all_feats)
+
+X_cnn_train = extract_cnn_features(X_train_raw)   # shape: (N, 512)
+X_cnn_test  = extract_cnn_features(X_test_raw)
+
+5. Training the SVM
+python# Basic SVM with RBF kernel
+clf = svm.SVC(kernel='rbf', C=10, gamma='scale', random_state=42)
+clf.fit(X_train, y_train)
+
+y_pred = clf.predict(X_test)
+print(classification_report(y_test, y_pred))
+
+6. Hyperparameter tuning with GridSearchCV
+C controls the margin width (higher C = tighter fit, more support vectors), and gamma controls the RBF kernel radius. Getting these right is the most impactful tuning step.
+pythonparam_grid = {
+    'C':     [0.1, 1, 10, 100],
+    'gamma': ['scale', 'auto', 0.001, 0.0001],
+    'kernel': ['rbf', 'linear', 'poly']
+}
+
+grid_search = GridSearchCV(
+    svm.SVC(),
+    param_grid,
+    cv=5,                     # 5-fold cross-validation
+    scoring='accuracy',
+    n_jobs=-1,                # use all CPU cores
+    verbose=2
+)
+grid_search.fit(X_train, y_train)
+
+print(f"Best params: {grid_search.best_params_}")
+print(f"Best CV accuracy: {grid_search.best_score_:.4f}")
+
+best_clf = grid_search.best_estimator_
+y_pred   = best_clf.predict(X_test)
+
+7. Full pipeline — clean, reusable
+Wrapping everything in a Pipeline prevents data leakage (scaler fitted only on train data):
+pythonfrom sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
+
+pipe = Pipeline([
+    ('scaler', StandardScaler()),
+    ('pca',    PCA(n_components=100, whiten=True)),
+    ('svm',    svm.SVC(kernel='rbf', C=10, gamma='scale'))
+])
+
+pipe.fit(X_train_raw, y_train)
+y_pred = pipe.predict(X_test_raw)
+print(classification_report(y_test, y_pred))
+
+# Cross-validate the whole pipeline
+scores = cross_val_score(pipe, X_raw, y_raw, cv=5, scoring='accuracy')
+print(f"CV accuracy: {scores.mean():.4f} ± {scores.std():.4f}")
+
+8. Multi-class SVM strategies
+SVMs are binary classifiers natively. scikit-learn handles multi-class automatically with two strategies:
+python# One-vs-One (default for SVC) — trains C(n,2) classifiers, majority vote
+clf_ovo = svm.SVC(kernel='rbf', decision_function_shape='ovo')
+
+# One-vs-Rest — trains n classifiers, pick highest confidence
+clf_ovr = svm.SVC(kernel='rbf', decision_function_shape='ovr')
+
+# LinearSVC uses OVR by default and scales better to large datasets
+from sklearn.svm import LinearSVC
+clf_linear = LinearSVC(C=1.0, max_iter=5000)
+clf_linear.fit(X_train, y_train)
+
+9. Evaluation and visualization
+python# Confusion matrix
+cm = confusion_matrix(y_test, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm,
+                               display_labels=digits.target_names)
+disp.plot(cmap='Blues')
+plt.title("Confusion matrix")
+plt.show()
+
+# Detailed metrics
+print(classification_report(y_test, y_pred,
+                             target_names=[str(i) for i in range(10)]))
+
+# Visualize some predictions
+fig, axes = plt.subplots(2, 5, figsize=(12, 5))
+for ax, img, true, pred in zip(axes.flat,
+                                digits.images[X_test.index[:10]],
+                                y_test[:10], y_pred[:10]):
+    ax.imshow(img, cmap='gray')
+    color = 'green' if true == pred else 'red'
+    ax.set_title(f"T:{true} P:{pred}", color=color, fontsize=9)
+    ax.axis('off')
+plt.tight_layout()
+plt.show()
+
+10. Complete worked example on CIFAR-10
+pythonfrom sklearn.datasets import fetch_openml
+from sklearn.svm import SVC
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.metrics import accuracy_score
+
+# Load CIFAR-10 via OpenML
+cifar = fetch_openml('CIFAR_10', version=1, as_frame=False)
+X, y = cifar.data.astype(np.float32) / 255.0, cifar.target.astype(int)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.1, random_state=42, stratify=y
+)
+
+pipe = Pipeline([
+    ('scaler', StandardScaler()),
+    ('pca',    PCA(n_components=200, whiten=True)),
+    ('svm',    SVC(kernel='rbf', C=50, gamma='scale', cache_size=2000))
+])
+
+pipe.fit(X_train, y_train)
+y_pred = pipe.predict(X_test)
+print(f"CIFAR-10 test accuracy: {accuracy_score(y_test, y_pred):.4f}")
+# Typical result: ~55-60% with raw pixels + PCA + SVM
+# With CNN features (ResNet-18): ~90%+
+
+  1. Basic histogram with OpenCV and Matplotlib
+pythonimport cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+img = cv2.imread("photo.jpg")
+img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+# --- Grayscale histogram ---
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+# cv2.calcHist(images, channels, mask, histSize, ranges)
+hist_gray = cv2.calcHist([gray], [0], None, [256], [0, 256])
+
+plt.figure(figsize=(10, 4))
+
+plt.subplot(1, 2, 1)
+plt.imshow(img_rgb)
+plt.title("Original image")
+plt.axis("off")
+
+plt.subplot(1, 2, 2)
+plt.plot(hist_gray, color='gray')
+plt.fill_between(range(256), hist_gray.flatten(), alpha=0.3, color='gray')
+plt.xlabel("Pixel intensity (0=black, 255=white)")
+plt.ylabel("Pixel count")
+plt.title("Grayscale histogram")
+plt.xlim([0, 256])
+plt.tight_layout()
+plt.show()
+
+2. Per-channel RGB histogram
+pythoncolors = ('b', 'g', 'r')
+channel_names = ('Blue', 'Green', 'Red')
+
+plt.figure(figsize=(8, 4))
+for i, (col, name) in enumerate(zip(colors, channel_names)):
+    hist = cv2.calcHist([img], [i], None, [256], [0, 256])
+    plt.plot(hist, color=col, label=name, linewidth=1.5)
+    plt.fill_between(range(256), hist.flatten(), alpha=0.2, color=col)
+
+plt.xlabel("Pixel intensity")
+plt.ylabel("Pixel count")
+plt.title("RGB channel histograms")
+plt.legend()
+plt.xlim([0, 256])
+plt.tight_layout()
+plt.show()
+
+3. Histogram with a mask (region of interest)
+Only compute the histogram over a specific part of the image:
+python# Create a mask — white region = area to include
+mask = np.zeros(gray.shape, dtype=np.uint8)
+h, w = gray.shape
+mask[100:300, 150:400] = 255          # analyse this rectangular region only
+
+hist_full   = cv2.calcHist([gray], [0], None,  [256], [0, 256])
+hist_masked = cv2.calcHist([gray], [0], mask,  [256], [0, 256])
+
+plt.plot(hist_full,   label='Full image', color='gray')
+plt.plot(hist_masked, label='ROI only',   color='teal')
+plt.legend()
+plt.show()
+
+# Visualise the mask
+masked_img = cv2.bitwise_and(gray, gray, mask=mask)
+plt.imshow(masked_img, cmap='gray')
+plt.show()
+
+4. Histogram equalization — fix poor contrast
+Histogram equalization spreads the pixel values across the full 0–255 range, boosting contrast in washed-out or dark images.
+python# Standard equalization (grayscale only)
+equalized = cv2.equalizeHist(gray)
+
+# CLAHE — Contrast Limited Adaptive Histogram Equalization
+# Better than global equalization: avoids over-amplifying noise
+clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+clahe_result = clahe.apply(gray)
+
+fig, axes = plt.subplots(2, 3, figsize=(12, 7))
+for ax, img_show, title in zip(
+    axes[0],
+    [gray, equalized, clahe_result],
+    ["Original", "Equalized", "CLAHE"]
+):
+    ax.imshow(img_show, cmap='gray')
+    ax.set_title(title); ax.axis('off')
+
+for ax, img_show, col in zip(axes[1], [gray, equalized, clahe_result], ['gray']*3):
+    h = cv2.calcHist([img_show], [0], None, [256], [0, 256])
+    ax.plot(h, color='steelblue')
+    ax.fill_between(range(256), h.flatten(), alpha=0.3, color='steelblue')
+    ax.set_xlim([0, 256])
+
+plt.tight_layout()
+plt.show()
+
+5. Color image equalization (YCrCb color space)
+Applying equalization directly on RGB channels distorts colors. The correct approach: equalize only the luminance channel.
+python# Method 1: YCrCb (good for natural images)
+ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+ycrcb[:, :, 0] = cv2.equalizeHist(ycrcb[:, :, 0])   # Y = luminance
+result_ycrcb = cv2.cvtColor(ycrcb, cv2.COLOR_YCrCb2BGR)
+
+# Method 2: HSV — equalize Value channel
+hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+hsv[:, :, 2] = cv2.equalizeHist(hsv[:, :, 2])        # V = brightness
+result_hsv = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+
+# Method 3: LAB — equalize L channel (perceptually best)
+lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+lab[:, :, 0] = clahe.apply(lab[:, :, 0])
+result_lab = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+6. Histogram statistics
+pythonimport numpy as np
+
+def histogram_stats(image_gray):
+    hist = cv2.calcHist([image_gray], [0], None, [256], [0, 256]).flatten()
+    total = hist.sum()
+    intensities = np.arange(256)
+
+    mean   = np.sum(intensities * hist) / total
+    var    = np.sum(((intensities - mean) ** 2) * hist) / total
+    std    = np.sqrt(var)
+    median = np.searchsorted(np.cumsum(hist), total / 2)
+    mode   = np.argmax(hist)
+
+    # Skewness: negative = left-skewed (dark image), positive = right-skewed (bright)
+    skew = np.sum(((intensities - mean) ** 3) * hist) / (total * std ** 3)
+
+    # Kurtosis: low = flat distribution, high = peaked
+    kurt = np.sum(((intensities - mean) ** 4) * hist) / (total * std ** 4) - 3
+
+    return {
+        "mean":     round(mean, 2),
+        "std":      round(std, 2),
+        "median":   int(median),
+        "mode":     int(mode),
+        "skewness": round(skew, 3),
+        "kurtosis": round(kurt, 3),
+    }
+
+stats = histogram_stats(gray)
+for k, v in stats.items():
+    print(f"  {k:12s}: {v}")
+
+7. Histogram backprojection (object detection / skin detection)
+Backprojection finds regions in an image that match a target colour histogram — useful for tracking objects or segmenting skin tones.
+python# Sample a small ROI containing the target color
+roi    = img[100:200, 150:250]
+roi_hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+# Build 2D H-S histogram from the ROI
+roi_hist = cv2.calcHist([roi_hsv], [0, 1], None, [180, 256], [0, 180, 0, 256])
+cv2.normalize(roi_hist, roi_hist, 0, 255, cv2.NORM_MINMAX)
+
+# Back-project: find pixels in the full image that match the ROI histogram
+dst = cv2.calcBackProject([img_hsv], [0, 1], roi_hist, [0, 180, 0, 256], 1)
+
+# Optional: smooth and threshold
+kernel  = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+dst     = cv2.filter2D(dst, -1, kernel)
+_, mask = cv2.threshold(dst, 50, 255, cv2.THRESH_BINARY)
+result  = cv2.bitwise_and(img, img, mask=mask)
+
+plt.subplot(1, 2, 1); plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)); plt.title("Original")
+plt.subplot(1, 2, 2); plt.imshow(cv2.cvtColor(result, cv2.COLOR_BGR2RGB)); plt.title("Backprojection")
+plt.show()
+
+8. Histogram comparison (image similarity)
+Compare how similar two histograms are — useful for image retrieval and duplicate detection.
+pythondef compare_images(img1_path, img2_path):
+    img1 = cv2.imread(img1_path)
+    img2 = cv2.imread(img2_path)
+
+    # Convert to HSV for color comparison
+    h1 = cv2.calcHist([cv2.cvtColor(img1, cv2.COLOR_BGR2HSV)],
+                      [0, 1], None, [50, 60], [0, 180, 0, 256])
+    h2 = cv2.calcHist([cv2.cvtColor(img2, cv2.COLOR_BGR2HSV)],
+                      [0, 1], None, [50, 60], [0, 180, 0, 256])
+
+    cv2.normalize(h1, h1, 0, 1, cv2.NORM_MINMAX)
+    cv2.normalize(h2, h2, 0, 1, cv2.NORM_MINMAX)
+
+    # Four comparison methods:
+    methods = {
+        "Correlation":        cv2.HISTCMP_CORREL,        # higher = more similar
+        "Chi-squared":        cv2.HISTCMP_CHISQR,        # lower  = more similar
+        "Intersection":       cv2.HISTCMP_INTERSECT,     # higher = more similar
+        "Bhattacharyya dist": cv2.HISTCMP_BHATTACHARYYA, # lower  = more similar
+    }
+    for name, method in methods.items():
+        score = cv2.compareHist(h1, h2, method)
+        print(f"  {name:20s}: {score:.4f}")
+
+9. Using Pillow
+pythonfrom PIL import Image
+import numpy as np
+import matplotlib.pyplot as plt
+
+img = Image.open("photo.jpg")
+
+# Grayscale histogram
+gray = img.convert("L")
+hist = gray.histogram()            # returns list of 256 counts directly
+
+# Colour histogram
+r_hist = img.histogram()[0:256]
+g_hist = img.histogram()[256:512]
+b_hist = img.histogram()[512:768]
+
+plt.figure(figsize=(8, 3))
+plt.plot(r_hist, color='red',   alpha=0.7, label='R')
+plt.plot(g_hist, color='green', alpha=0.7, label='G')
+plt.plot(b_hist, color='blue',  alpha=0.7, label='B')
+plt.legend(); plt.xlim([0, 256]); plt.show()
+
+1. Color quantization — K-Means on a single image
+The most classic use: reduce an image from millions of colors down to K dominant colors, creating a posterized effect.
+pythonimport cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+def color_quantization(image_path, k=8):
+    img = cv2.imread(image_path)
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    # Reshape to (num_pixels, 3) — each row is one RGB pixel
+    pixels = img_rgb.reshape(-1, 3).astype(np.float32)
+
+    # K-Means
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
+    _, labels, centers = cv2.kmeans(
+        pixels, k, None, criteria,
+        attempts=10,
+        flags=cv2.KMEANS_PP_CENTERS   # K-Means++ initialization
+    )
+
+    centers = np.uint8(centers)
+    # Replace each pixel with its cluster center color
+    quantized = centers[labels.flatten()].reshape(img_rgb.shape)
+
+    # Show dominant color palette
+    palette = np.zeros((60, k * 60, 3), dtype=np.uint8)
+    for i, color in enumerate(centers):
+        palette[:, i*60:(i+1)*60] = color
+
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4))
+    axes[0].imshow(img_rgb);    axes[0].set_title("Original");      axes[0].axis("off")
+    axes[1].imshow(quantized);  axes[1].set_title(f"Quantized (K={k})"); axes[1].axis("off")
+    axes[2].imshow(palette);    axes[2].set_title("Dominant palette"); axes[2].axis("off")
+    plt.tight_layout()
+    plt.show()
+
+    return quantized, centers
+
+quantized, palette = color_quantization("photo.jpg", k=8)
+
+2. Clustering a dataset of images
+Group many images into K clusters based on visual similarity.
+pythonimport os
+import numpy as np
+import cv2
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from pathlib import Path
+
+def load_and_flatten(image_dir, img_size=(64, 64)):
+    """Load all images, resize to same dimensions, flatten to 1D feature vectors."""
+    X, paths = [], []
+    for ext in ('*.jpg', '*.jpeg', '*.png'):
+        for p in Path(image_dir).glob(ext):
+            img = cv2.imread(str(p))
+            if img is None:
+                continue
+            img = cv2.resize(img, img_size)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            X.append(img.flatten().astype(np.float32) / 255.0)
+            paths.append(str(p))
+    return np.array(X), paths
+
+X, image_paths = load_and_flatten("images/", img_size=(64, 64))
+print(f"Loaded {len(X)} images — feature vector shape: {X.shape}")
+
+# Normalize
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Cluster
+k = 6
+kmeans = KMeans(n_clusters=k, init='k-means++', n_init=10, random_state=42)
+kmeans.fit(X_scaled)
+labels = kmeans.labels_
+
+# Group image paths by cluster
+clusters = {i: [] for i in range(k)}
+for path, label in zip(image_paths, labels):
+    clusters[label].append(path)
+
+for cluster_id, imgs in clusters.items():
+    print(f"Cluster {cluster_id}: {len(imgs)} images")
+
+3. Better features: HOG + PCA before K-Means
+Raw pixel vectors are high-dimensional and noisy. HOG + PCA gives much better clusters.
+pythonfrom skimage.feature import hog
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+import numpy as np
+import cv2
+
+def extract_hog(image_path, img_size=(128, 128)):
+    img = cv2.imread(image_path)
+    img = cv2.resize(img, img_size)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    features = hog(
+        gray,
+        orientations=9,
+        pixels_per_cell=(8, 8),
+        cells_per_block=(2, 2),
+        block_norm='L2-Hys'
+    )
+    return features
+
+# Extract HOG for all images
+hog_features = np.array([extract_hog(p) for p in image_paths])
+print(f"HOG features shape: {hog_features.shape}")  # e.g. (500, 1764)
+
+# Reduce dimensionality with PCA
+pca = PCA(n_components=50, whiten=True, random_state=42)
+X_pca = pca.fit_transform(hog_features)
+print(f"After PCA: {X_pca.shape}")                  # (500, 50)
+print(f"Variance retained: {pca.explained_variance_ratio_.sum():.2%}")
+
+# K-Means on compressed features
+kmeans = KMeans(n_clusters=8, init='k-means++', n_init=15, random_state=42)
+labels = kmeans.fit_predict(X_pca)
+
+4. CNN features + K-Means (most powerful)
+Use a pretrained ResNet to extract rich semantic embeddings, then cluster those.
+pythonimport torch
+import torchvision.models as models
+import torchvision.transforms as transforms
+from PIL import Image
+from sklearn.cluster import KMeans
+import numpy as np
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+# Load ResNet-18, strip the final classification head
+model = models.resnet18(weights='IMAGENET1K_V1')
+model.fc = torch.nn.Identity()   # output: 512-dim embedding
+model = model.to(device).eval()
+
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                         std =[0.229, 0.224, 0.225])
+])
+
+def extract_embeddings(image_paths, batch_size=32):
+    all_embeds = []
+    with torch.no_grad():
+        for i in range(0, len(image_paths), batch_size):
+            batch_paths = image_paths[i:i+batch_size]
+            tensors = []
+            for p in batch_paths:
+                img = Image.open(p).convert('RGB')
+                tensors.append(transform(img))
+            batch = torch.stack(tensors).to(device)
+            embeds = model(batch).cpu().numpy()
+            all_embeds.append(embeds)
+    return np.vstack(all_embeds)
+
+embeddings = extract_embeddings(image_paths)
+print(f"Embeddings: {embeddings.shape}")   # (N, 512)
+
+# Optional: PCA before K-Means to speed things up
+from sklearn.decomposition import PCA
+pca = PCA(n_components=128, random_state=42)
+embeddings_pca = pca.fit_transform(embeddings)
+
+kmeans = KMeans(n_clusters=10, init='k-means++', n_init=10, random_state=42)
+labels = kmeans.fit_predict(embeddings_pca)
+
+5. Finding the optimal K
+Elbow method
+pythonfrom sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+
+inertias = []
+K_range = range(2, 15)
+
+for k in K_range:
+    km = KMeans(n_clusters=k, init='k-means++', n_init=10, random_state=42)
+    km.fit(X_pca)
+    inertias.append(km.inertia_)
+
+plt.figure(figsize=(8, 4))
+plt.plot(K_range, inertias, 'o-', color='steelblue', linewidth=2)
+plt.xlabel("Number of clusters (K)")
+plt.ylabel("Inertia (within-cluster sum of squares)")
+plt.title("Elbow method — pick K at the 'elbow'")
+plt.xticks(K_range)
+plt.grid(True, alpha=0.3)
+plt.show()
+Silhouette score
+pythonfrom sklearn.metrics import silhouette_score
+
+sil_scores = []
+for k in range(2, 12):
+    km = KMeans(n_clusters=k, init='k-means++', n_init=10, random_state=42)
+    labels_k = km.fit_predict(X_pca)
+    score = silhouette_score(X_pca, labels_k)
+    sil_scores.append(score)
+    print(f"K={k:2d}  silhouette={score:.4f}")
+
+best_k = range(2, 12)[np.argmax(sil_scores)]
+print(f"\nBest K by silhouette: {best_k}")
+
+plt.plot(range(2, 12), sil_scores, 'o-', color='teal')
+plt.xlabel("K"); plt.ylabel("Silhouette score")
+plt.title("Higher silhouette = better-separated clusters")
+plt.show()
+
+6. Visualizing clusters
+Grid of images per cluster
+pythonimport matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+
+def show_cluster_grid(image_paths, labels, k, n_cols=5, n_rows=3):
+    fig, big_axes = plt.subplots(k, 1, figsize=(n_cols*2, k*n_rows*2))
+    for cluster_id in range(k):
+        cluster_imgs = [p for p, l in zip(image_paths, labels) if l == cluster_id]
+        sample = cluster_imgs[:n_cols * n_rows]
+        big_axes[cluster_id].set_title(f"Cluster {cluster_id} ({len(cluster_imgs)} images)",
+                                        fontsize=12, pad=10)
+        big_axes[cluster_id].axis("off")
+
+        sub_axes = big_axes[cluster_id].inset_axes(
+            [0, 0, 1, 1]).get_figure().add_gridspec(
+            n_rows, n_cols, hspace=0.05, wspace=0.05)
+
+        for idx, img_path in enumerate(sample):
+            ax = fig.add_subplot(sub_axes[idx // n_cols, idx % n_cols])
+            ax.imshow(mpimg.imread(img_path))
+            ax.axis("off")
+    plt.tight_layout()
+    plt.show()
+
+show_cluster_grid(image_paths, labels, k=6)
+t-SNE visualization (2D scatter)
+pythonfrom sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+
+# Reduce to 2D for plotting (use PCA first to speed up t-SNE)
+pca_50 = PCA(n_components=50, random_state=42).fit_transform(embeddings)
+tsne   = TSNE(n_components=2, perplexity=30, n_iter=1000, random_state=42)
+X_2d   = tsne.fit_transform(pca_50)
+
+colors = cm.tab10(np.linspace(0, 1, k))
+plt.figure(figsize=(10, 7))
+for cluster_id in range(k):
+    mask = labels == cluster_id
+    plt.scatter(X_2d[mask, 0], X_2d[mask, 1],
+                c=[colors[cluster_id]], label=f"Cluster {cluster_id}",
+                s=20, alpha=0.7)
+plt.legend(markerscale=2)
+plt.title("t-SNE projection of image clusters")
+plt.axis("off")
+plt.tight_layout()
+plt.show()
+Cluster centroids as representative images
+pythondef show_centroids(kmeans, X_raw, image_paths, k):
+    """Find the image closest to each centroid."""
+    from sklearn.metrics import pairwise_distances_argmin
+    centroid_indices = pairwise_distances_argmin(kmeans.cluster_centers_, X_raw)
+
+    fig, axes = plt.subplots(1, k, figsize=(k * 2.5, 3))
+    for i, idx in enumerate(centroid_indices):
+        img = mpimg.imread(image_paths[idx])
+        axes[i].imshow(img)
+        axes[i].set_title(f"C{i}", fontsize=10)
+        axes[i].axis("off")
+    plt.suptitle("Most representative image per cluster")
+    plt.tight_layout()
+    plt.show()
+
+7. Pixel-level segmentation within a single image
+K-Means can also segment regions inside one image by clustering pixels by color.
+pythonimport cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+def segment_image(image_path, k=4):
+    img = cv2.imread(image_path)
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    h, w = img_rgb.shape[:2]
+
+    # Feature: pixel RGB + position (gives spatially coherent segments)
+    y_coords, x_coords = np.mgrid[0:h, 0:w]
+    pixels = np.column_stack([
+        img_rgb.reshape(-1, 3).astype(np.float32) / 255.0,
+        x_coords.flatten() / w,   # normalize position to [0,1]
+        y_coords.flatten() / h,
+    ])
+
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
+    _, labels, centers = cv2.kmeans(pixels, k, None, criteria, 10,
+                                     cv2.KMEANS_PP_CENTERS)
+
+    # Render each segment with a distinct color
+    colors = (np.array([[255,100,100],[100,200,100],[100,100,255],
+                         [255,200,50],[180,100,200],[100,220,220]]) / 255.0)[:k]
+    segmented = colors[labels.flatten()].reshape(h, w, 3)
+
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+    axes[0].imshow(img_rgb);   axes[0].set_title("Original"); axes[0].axis("off")
+    axes[1].imshow(segmented); axes[1].set_title(f"Segmented (K={k})"); axes[1].axis("off")
+    plt.tight_layout()
+    plt.show()
+    return labels.reshape(h, w)
+
+segment_image("photo.jpg", k=5)
+
+8. Full end-to-end pipeline (scikit-learn)
+pythonfrom sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+pipe = Pipeline([
+    ('scaler', StandardScaler()),
+    ('pca',    PCA(n_components=80, whiten=True, random_state=42)),
+    ('kmeans', KMeans(n_clusters=8, init='k-means++', n_init=15, random_state=42))
+])
+
+pipe.fit(X_raw)
+labels = pipe.named_steps['kmeans'].labels_
+inertia = pipe.named_steps['kmeans'].inertia_
+
+print(f"Inertia: {inertia:.2f}")
+print(f"Cluster sizes: {np.bincount(labels)}")
