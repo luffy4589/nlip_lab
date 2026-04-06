@@ -1,3 +1,12 @@
+pip install nltk spacy tokenizers transformers sentencepiece sentence-transformers scikit-learn gensim torch torchvision faiss-cpu scipy numpy matplotlib opencv-python scikit-image
+
+import nltk
+nltk.download('punkt_tab')
+nltk.download('vader_lexicon')
+
+python -m spacy download en_core_web_sm
+python -m spacy download en_core_web_md
+
 Image classification Using svm
 
 import cv2
