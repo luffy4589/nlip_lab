@@ -16,43 +16,39 @@ from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, classification_report
 
-# -------------------------
-# 1. LOAD DATASET (Scalable Folder Scanner)
-# -------------------------
-dataset_path = "dataset" # Root folder containing subfolders for each class
+dataset_path = "dataset" # A folder full of images
 data = []
 labels = []
-class_names = []
 
-# Automatically detect subfolders as classes
-# This allows the code to work for 2 classes or 100 classes without changes
-available_classes = [d for d in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, d))]
+# 1. Get a list of all files that are actually images
+image_files = [f for f in os.listdir(dataset_path) 
+               if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
 
-print(f"Detected classes: {available_classes}")
+print(f"Found {len(image_files)} images in the directory.")
 
-for label, folder in enumerate(available_classes):
-    class_names.append(folder)
-    folder_path = os.path.join(dataset_path, folder)
+for image_name in image_files:
+    img_path = os.path.join(dataset_path, image_name)
     
-    for image_name in os.listdir(folder_path):
-        img_path = os.path.join(folder_path, image_name)
+    # Load image
+    image = cv2.imread(img_path)
+    if image is None:
+        continue
         
-        # Load and validate image
-        image = cv2.imread(img_path)
-        if image is None:
-            continue
-            
-        # FEATURE ENGINEERING: Resize + Grayscale + Flatten
-        # Resizing ensures every "feature vector" is the same length (4096 dimensions)
-        image = cv2.resize(image, (64, 64))
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        
-        # Adding to the feature matrix
-        data.append(gray.flatten())
-        labels.append(label)
+    # FEATURE ENGINEERING
+    image = cv2.resize(image, (64, 64))
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    # Flatten and add to list
+    data.append(gray.flatten())
+    
+    # Since there are no subfolders, we assign everything 'Label 0'
+    labels.append(0)
 
+# Convert to Numpy Arrays
 data = np.array(data)
 labels = np.array(labels)
+
+print("Feature Matrix Shape:", data.shape) # Should be (Number of Images, 4096)
 
 # -------------------------
 # 2. SPLIT DATA
