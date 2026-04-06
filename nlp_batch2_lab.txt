@@ -16,33 +16,53 @@ from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, classification_report
 
-dataset_path = "dataset" # A folder full of images
-data = []
-labels = []
+# Automatically detect subfolders as classes
 
-# 1. Get a list of all files that are actually images
-image_files = [f for f in os.listdir(dataset_path) 
-               if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+# This allows the code to work for 2 classes or 100 classes without changes
 
-print(f"Found {len(image_files)} images in the directory.")
+available_classes = [d for d in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, d))]
 
-for image_name in image_files:
-    img_path = os.path.join(dataset_path, image_name)
+print(f"Detected classes: {available_classes}")
+
+for label, folder in enumerate(available_classes):
+
+    class_names.append(folder)
+
+    folder_path = os.path.join(dataset_path, folder)
+
     
-    # Load image
-    image = cv2.imread(img_path)
-    if image is None:
-        continue
+
+    for image_name in os.listdir(folder_path):
+
+        img_path = os.path.join(folder_path, image_name)
+
         
-    # FEATURE ENGINEERING
-    image = cv2.resize(image, (64, 64))
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
-    # Flatten and add to list
-    data.append(gray.flatten())
-    
-    # Since there are no subfolders, we assign everything 'Label 0'
-    labels.append(0)
+
+        # Load and validate image
+
+        image = cv2.imread(img_path)
+
+        if image is None:
+
+            continue
+
+            
+
+        # FEATURE ENGINEERING: Resize + Grayscale + Flatten
+
+        # Resizing ensures every "feature vector" is the same length (4096 dimensions)
+
+        image = cv2.resize(image, (64, 64))
+
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        
+
+        # Adding to the feature matrix
+
+        data.append(gray.flatten())
+
+        labels.append(label)
 
 # Convert to Numpy Arrays
 data = np.array(data)
