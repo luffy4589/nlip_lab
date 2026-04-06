@@ -142,6 +142,44 @@ for filename in image_files:
 
 print("Segmentation complete. Results saved in:", output_folder)
 
+import cv2
+import numpy as np
+
+# Read the image
+image = cv2.imread("image.jpg")
+
+# Convert image to RGB (optional for display clarity)
+image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+# Reshape image into 2D array of pixels
+pixel_values = image_rgb.reshape((-1, 3))
+pixel_values = np.float32(pixel_values)
+
+# Define criteria for K-means
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
+
+# Number of clusters
+k = 4
+
+# Apply K-means
+_, labels, centers = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+
+# Convert centers to 8-bit values
+centers = np.uint8(centers)
+
+# Map labels to cluster centers
+segmented_image = centers[labels.flatten()]
+
+# Reshape back to original image dimension
+segmented_image = segmented_image.reshape(image_rgb.shape)
+
+# Display images
+cv2.imshow("Original Image", image)
+cv2.imshow("Clustered Image", segmented_image)
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
 Text classification using naive bayes classifier
 
 import pandas as pd
