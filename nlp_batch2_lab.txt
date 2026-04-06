@@ -350,6 +350,96 @@ plt.show()
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
+import cv2
+import os
+import pandas as pd
+import numpy as np
+
+# --- CONFIGURATION ---
+input_folder = "input_images/"
+output_base = "filtered_results/"
+os.makedirs(output_base, exist_ok=True)
+
+# Define subfolders for different filter types
+subfolders = ["low_pass_gaussian", "high_pass_sobel", "canny_edges"]
+for sub in subfolders:
+    os.makedirs(os.path.join(output_base, sub), exist_ok=True)
+
+# --- PROCESSING PIPELINE ---
+image_files = [f for f in os.listdir(input_folder) if f.endswith(('.jpg', '.png', '.jpeg'))]
+
+for filename in image_files:
+    # 1. Load Image
+    img_path = os.path.join(input_folder, filename)
+    img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    
+    if img is None: continue
+
+    # 2. Advanced Low Pass Filter (Gaussian)
+    low_pass = cv2.GaussianBlur(img, (5, 5), 0)
+    cv2.imwrite(os.path.join(output_base, "low_pass_gaussian", filename), low_pass)
+
+    # 3. Advanced High Pass Filter (Sobel)
+    sobel_x = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+    sobel_y = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+    high_pass = cv2.magnitude(sobel_x, sobel_y)
+    # Normalize to 0-255 for saving
+    high_pass_rescaled = cv2.normalize(high_pass, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+    cv2.imwrite(os.path.join(output_base, "high_pass_sobel", filename), high_pass_rescaled)
+
+    # 4. Canny Edge Detection
+    canny_edges = cv2.Canny(img, 100, 200)
+    cv2.imwrite(os.path.join(output_base, "canny_edges", filename), canny_edges)
+
+print(f"Processed {len(image_files)} images successfully.")
+
+import cv2
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# --- CONFIGURATION ---
+dataset_path = "image_dataset/"
+output_path = "equalized_dataset/"
+os.makedirs(output_path, exist_ok=True)
+
+# List to store metadata for analysis
+stats = []
+
+# --- BATCH HISTOGRAM EQUALIZATION ---
+for filename in os.listdir(dataset_path):
+    if filename.endswith(('.jpg', '.png')):
+        img = cv2.imread(os.path.join(dataset_path, filename), cv2.IMREAD_GRAYSCALE)
+        if img is None: continue
+
+        # Calculate Original Statistics
+        orig_mean = img.mean()
+
+        # Perform Equalization
+        equalized = cv2.equalizeHist(img)
+        
+        # Calculate New Statistics
+        eq_mean = equalized.mean()
+
+        # Save the transformed image
+        cv2.imwrite(os.path.join(output_path, filename), equalized)
+
+        # Store metadata
+        stats.append({
+            "filename": filename,
+            "original_brightness": orig_mean,
+            "equalized_brightness": eq_mean
+        })
+
+# Create a summary report
+df_stats = pd.DataFrame(stats)
+print(df_stats.head())
+
+# Optional: Plot overall dataset brightness shift
+df_stats[['original_brightness', 'equalized_brightness']].plot(kind='hist', alpha=0.5, bins=30)
+plt.title("Dataset Brightness Distribution Change")
+plt.show()
+
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
