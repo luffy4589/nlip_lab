@@ -5,25 +5,40 @@ import os
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report
 
 # -------------------------
-# LOAD DATASET
+# 1. LOAD DATASET (Scalable Folder Scanner)
 # -------------------------
-
-dataset_path = "dataset"
+dataset_path = "dataset" # Root folder containing subfolders for each class
 data = []
 labels = []
+class_names = []
 
-for label, folder in enumerate(["cat", "dog"]):
+# Automatically detect subfolders as classes
+# This allows the code to work for 2 classes or 100 classes without changes
+available_classes = [d for d in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, d))]
+
+print(f"Detected classes: {available_classes}")
+
+for label, folder in enumerate(available_classes):
+    class_names.append(folder)
     folder_path = os.path.join(dataset_path, folder)
+    
     for image_name in os.listdir(folder_path):
         img_path = os.path.join(folder_path, image_name)
+        
+        # Load and validate image
         image = cv2.imread(img_path)
+        if image is None:
+            continue
+            
+        # FEATURE ENGINEERING: Resize + Grayscale + Flatten
+        # Resizing ensures every "feature vector" is the same length (4096 dimensions)
         image = cv2.resize(image, (64, 64))
-
-        # For SVM (grayscale + flatten)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
+        # Adding to the feature matrix
         data.append(gray.flatten())
         labels.append(label)
 
@@ -31,64 +46,89 @@ data = np.array(data)
 labels = np.array(labels)
 
 # -------------------------
-# SPLIT DATA
+# 2. SPLIT DATA
 # -------------------------
-
+# Using a 20% test size is more standard for small-to-medium datasets
 X_train, X_test, y_train, y_test = train_test_split(
-    data, labels, test_size=0.5, random_state=42
+    data, labels, test_size=0.2, random_state=42, stratify=labels
 )
 
 # -------------------------
-# SVM CLASSIFIER
+# 3. SVM CLASSIFIER
 # -------------------------
+print(f"Training SVM on {len(X_train)} images...")
 
-print("Training SVM...")
-
-svm_model = SVC(kernel='linear')
+# Using a linear kernel is a good starting point for high-dimensional pixel data
+svm_model = SVC(kernel='linear', C=1.0)
 svm_model.fit(X_train, y_train)
 
+# -------------------------
+# 4. EVALUATION & REPORTING
+# -------------------------
 svm_predictions = svm_model.predict(X_test)
-print("SVM Accuracy:", accuracy_score(y_test, svm_predictions))
+
+print("\n--- Model Performance ---")
+print(f"Overall Accuracy: {accuracy_score(y_test, svm_predictions):.2%}")
+
+print("\n--- Detailed Classification Report ---")
+# The report shows how well the model performed for EACH specific class
+print(classification_report(y_test, svm_predictions, target_names=class_names))
 
 Image clustering using k means
 
 import cv2
 import numpy as np
+import os
 
-# Read the image
-image = cv2.imread("image.jpg")
+# --- 1. CONFIGURATION ---
+input_folder = "raw_dataset/"
+output_folder = "segmented_dataset/"
+os.makedirs(output_folder, exist_ok=True)
 
-# Convert image to RGB (optional for display clarity)
-image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-# Reshape image into 2D array of pixels
-pixel_values = image_rgb.reshape((-1, 3))
-pixel_values = np.float32(pixel_values)
-
-# Define criteria for K-means
+# K-Means Parameters
+k_clusters = 4
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
 
-# Number of clusters
-k = 4
+# --- 2. BATCH PROCESSING ---
+image_files = [f for f in os.listdir(input_folder) if f.endswith(('.jpg', '.png', '.jpeg'))]
 
-# Apply K-means
-_, labels, centers = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+print(f"Starting segmentation on {len(image_files)} images...")
 
-# Convert centers to 8-bit values
-centers = np.uint8(centers)
+for filename in image_files:
+    # Load Image
+    path = os.path.join(input_folder, filename)
+    image = cv2.imread(path)
+    
+    if image is None:
+        continue
 
-# Map labels to cluster centers
-segmented_image = centers[labels.flatten()]
+    # Reshape for K-Means (Flattening the 2D image into a 1D list of RGB pixels)
+    # Each row is a pixel, and each column is a color channel (R, G, B)
+    pixel_values = image.reshape((-1, 3))
+    pixel_values = np.float32(pixel_values)
 
-# Reshape back to original image dimension
-segmented_image = segmented_image.reshape(image_rgb.shape)
+    # Apply K-Means
+    _, labels, centers = cv2.kmeans(
+        pixel_values, 
+        k_clusters, 
+        None, 
+        criteria, 
+        10, 
+        cv2.KMEANS_RANDOM_CENTERS
+    )
 
-# Display images
-cv2.imshow("Original Image", image)
-cv2.imshow("Clustered Image", segmented_image)
+    # Convert centers to 8-bit (0-255) and map labels
+    centers = np.uint8(centers)
+    segmented_data = centers[labels.flatten()]
 
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+    # Reshape back to original dimensions
+    segmented_image = segmented_data.reshape(image.shape)
+
+    # Save to the output folder
+    output_path = os.path.join(output_folder, filename)
+    cv2.imwrite(output_path, segmented_image)
+
+print("Segmentation complete. Results saved in:", output_folder)
 
 Text classification using naive bayes classifier
 
